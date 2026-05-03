@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ytdown</title>
+    <script type="module" src="/src/main.ts" defer></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #111; color: #eee;
+        min-height: 100vh;
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 28px 16px;
+      }
+      .app { width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: 12px; }
+
+      .header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+      .logo-box { width: 34px; height: 34px; background: #e33; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+      .logo-box svg { width: 16px; height: 16px; fill: white; }
+      .app-name { font-size: 15px; font-weight: 600; }
+      .app-sub { font-size: 11px; color: #888; }
+
+      .tabs { display: flex; gap: 4px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 4px; }
+      .tab-btn { flex: 1; padding: 7px; border: none; border-radius: 7px; background: transparent; color: #888; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+      .tab-btn.active { background: #2a2a2a; color: #eee; }
+
+      .tab-content { display: none; flex-direction: column; gap: 12px; }
+      .tab-content.active { display: flex; }
+
+      .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 16px; }
+
+      label { font-size: 11px; color: #888; display: block; margin-bottom: 6px; }
+
+      .url-row { display: flex; gap: 8px; }
+      input[type="text"] {
+        flex: 1; background: #111; border: 1px solid #333; border-radius: 8px;
+        padding: 8px 12px; color: #eee; font-size: 13px; outline: none;
+      }
+      input[type="text"]:focus { border-color: #e33; }
+
+      button {
+        background: #222; border: 1px solid #333; border-radius: 8px;
+        color: #eee; font-size: 13px; padding: 8px 16px;
+        cursor: pointer; transition: background 0.15s; white-space: nowrap;
+      }
+      button:hover { background: #2a2a2a; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      .preview {
+        display: none; align-items: center; gap: 12px; margin-top: 12px;
+        background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px;
+      }
+      .preview img { width: 80px; height: 50px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+      .preview-title { font-size: 13px; font-weight: 500; line-height: 1.4; }
+      .preview-meta { font-size: 11px; color: #888; margin-top: 2px; }
+
+      .fmt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .fmt-btn {
+        background: #111; border: 1px solid #2a2a2a; border-radius: 8px;
+        padding: 10px 12px; text-align: left; cursor: pointer; color: #eee; transition: border-color 0.15s;
+      }
+      .fmt-btn:hover { border-color: #444; }
+      .fmt-btn.active { border-color: #e33; background: #1f0a0a; }
+      .fmt-btn .fn { font-size: 13px; font-weight: 500; }
+      .fmt-btn.active .fn { color: #f66; }
+      .fmt-btn .fd { font-size: 11px; color: #666; margin-top: 2px; }
+
+      .chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+      .q-chip {
+        border: 1px solid #2a2a2a; border-radius: 20px; padding: 4px 14px;
+        font-size: 12px; color: #888; cursor: pointer; background: #111; transition: all 0.15s;
+      }
+      .q-chip:hover { border-color: #444; color: #ccc; }
+      .q-chip.active { background: #e33; border-color: #e33; color: white; }
+
+      .dl-btn {
+        width: 100%; background: #e33; border: none; border-radius: 8px;
+        color: white; font-size: 14px; font-weight: 500; padding: 11px;
+        margin-top: 14px; cursor: pointer; transition: background 0.15s;
+      }
+      .dl-btn:hover { background: #c22; }
+      .dl-btn:disabled { background: #633; opacity: 0.5; }
+
+      .progress { display: none; margin-top: 12px; }
+      .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 6px; }
+      .progress-track { background: #222; border-radius: 4px; height: 5px; overflow: hidden; }
+      .progress-fill { background: #e33; height: 100%; border-radius: 4px; width: 0%; transition: width 0.3s; }
+
+      .status { font-size: 12px; color: #888; margin-top: 8px; min-height: 16px; }
+
+      /* Настройки */
+      .sect-label { font-size: 11px; color: #666; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px; }
+      .settings-group { display: flex; flex-direction: column; gap: 14px; }
+      .setting-row { display: flex; flex-direction: column; gap: 6px; }
+      .setting-label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #aaa; margin-bottom: 0; }
+      .fmt-badge {
+        font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+        background: #2a2a2a; color: #888;
+      }
+      .fmt-badge.mp3  { background: #0a1a2a; color: #49a; }
+      .fmt-badge.mp4  { background: #0f2a1a; color: #4a9; }
+      .fmt-badge.webm { background: #1a1a0a; color: #aa8; }
+      .fmt-badge.opus { background: #1a0a1a; color: #a8a; }
+      .path-row { display: flex; gap: 8px; }
+      .path-row input { font-size: 12px; color: #aaa; }
+
+      .save-btn {
+        background: #e33; border: none; border-radius: 8px;
+        color: white; font-size: 13px; font-weight: 500;
+        padding: 9px 20px; cursor: pointer; align-self: flex-start;
+        transition: background 0.15s; margin-top: 4px;
+      }
+      .save-btn:hover { background: #c22; }
+
+      /* История */
+      .hist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #222; }
+      .hist-item:last-child { border-bottom: none; }
+      .hist-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: 600; }
+      .hist-icon.mp4  { background: #0f2a1a; color: #4a9; }
+      .hist-icon.mp3  { background: #0a1a2a; color: #49a; }
+      .hist-icon.webm { background: #1a1a0a; color: #aa8; }
+      .hist-icon.opus { background: #1a0a1a; color: #a8a; }
+      .hist-name { font-size: 12px; line-height: 1.3; }
+      .hist-meta { font-size: 11px; color: #666; }
+      .empty-hist { font-size: 12px; color: #555; text-align: center; padding: 12px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+
+      <div class="header">
+        <div class="logo-box">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div>
+          <div class="app-name">ytdown</div>
+          <div class="app-sub">персональный загрузчик</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="download">загрузка</button>
+        <button class="tab-btn" data-tab="settings">настройки</button>
+      </div>
+
+      <!-- Вкладка: загрузка -->
+      <div class="tab-content active" id="tab-download">
+
+        <div class="card">
+          <label>ссылка на видео</label>
+          <div class="url-row">
+            <input type="text" id="url-input" placeholder="https://youtube.com/watch?v=..." />
+            <button id="fetch-btn">найти</button>
+          </div>
+
+          <div class="preview" id="video-preview"></div>
+
+          <div style="margin-top:14px">
+            <label>формат</label>
+            <div class="fmt-grid">
+              <button class="fmt-btn" data-fmt="mp4">
+                <div class="fn">MP4</div><div class="fd">видео + звук</div>
+              </button>
+              <button class="fmt-btn active" data-fmt="mp3">
+                <div class="fn">MP3</div><div class="fd">только звук</div>
+              </button>
+              <button class="fmt-btn" data-fmt="webm">
+                <div class="fn">WEBM</div><div class="fd">видео + звук</div>
+              </button>
+              <button class="fmt-btn" data-fmt="opus">
+                <div class="fn">OPUS</div><div class="fd">аудио без потерь</div>
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>качество</label>
+            <div class="chips" id="quality-chips"></div>
+          </div>
+
+          <div class="progress" id="progress-section">
+            <div class="progress-header">
+              <span>загрузка...</span>
+              <span id="progress-text">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="status" id="status-text"></div>
+
+          <button class="dl-btn" id="download-btn" disabled>скачать</button>
+        </div>
+
+        <div class="card">
+          <div class="sect-label">история загрузок</div>
+          <div id="history-list"><div class="empty-hist">пока пусто</div></div>
+        </div>
+
+      </div>
+
+      <!-- Вкладка: настройки -->
+      <div class="tab-content" id="tab-settings">
+        <div class="card">
+          <div class="sect-label">папки сохранения</div>
+          <div class="settings-group">
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="fmt-badge mp3">MP3</span> аудио
+              </div>
+              <div class="path-row">
+                <input type="text" id="dir-mp3" placeholder="~/Music" />
+                <button class="pick-btn" data-target="dir-mp3">обзор</button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="fmt-badge opus">OPUS</span> аудио без потерь
+              </div>
+              <div class="path-row">
+                <input type="text" id="dir-opus" placeholder="~/Music" />
+                <button class="pick-btn" data-target="dir-opus">обзор</button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="fmt-badge mp4">MP4</span> видео
+              </div>
+              <div class="path-row">
+                <input type="text" id="dir-mp4" placeholder="~/Videos" />
+                <button class="pick-btn" data-target="dir-mp4">обзор</button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="fmt-badge webm">WEBM</span> видео
+              </div>
+              <div class="path-row">
+                <input type="text" id="dir-webm" placeholder="~/Videos" />
+                <button class="pick-btn" data-target="dir-webm">обзор</button>
+              </div>
+            </div>
+
+            <button class="save-btn" id="save-settings-btn">сохранить</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </body>
+</html>
